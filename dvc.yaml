@@ -1,0 +1,27 @@
+stages:
+  preprocess:
+    cmd: uv run scripts/preprocess.py
+    deps:
+      - data/raw/customers.csv
+      - scripts/preprocess.py
+    outs:
+      - data/processed/customers_cleaned.csv
+
+  train:
+    cmd: uv run scripts/train.py
+    deps:
+      - data/processed/customers_cleaned.csv
+      - scripts/train.py
+    outs:
+      - models/model.pkl
+      - models/scaler.pkl
+  evaluate:
+    cmd: uv run scripts/evaluate.py
+    deps:
+      - data/processed/customers_cleaned.csv
+      - models/model.pkl
+      - models/scaler.pkl
+      - scripts/evaluate.py
+    metrics:
+      - metrics.json:
+          cache: false
