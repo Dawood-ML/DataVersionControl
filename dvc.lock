@@ -25,13 +25,13 @@ stages:
       size: 1246910
     - path: scripts/train.py
       hash: md5
-      md5: affc907744de55f106a1d98dceff4941
-      size: 5116
+      md5: ad44562fad692df1d0122ec8a290b786
+      size: 5211
     outs:
     - path: models/model.pkl
       hash: md5
-      md5: c55b0e5f9d8be07aa7f75599736c8f4b
-      size: 3414784
+      md5: cfffe4f143e794f39960a1ce346c3bcb
+      size: 3372844
     - path: models/scaler.pkl
       hash: md5
       md5: 89a2d9b923ca7371836aadb745a44318
@@ -45,8 +45,8 @@ stages:
       size: 1246910
     - path: models/model.pkl
       hash: md5
-      md5: c55b0e5f9d8be07aa7f75599736c8f4b
-      size: 3414784
+      md5: cfffe4f143e794f39960a1ce346c3bcb
+      size: 3372844
     - path: models/scaler.pkl
       hash: md5
       md5: 89a2d9b923ca7371836aadb745a44318
@@ -58,5 +58,5 @@ stages:
     outs:
     - path: metrics.json
       hash: md5
-      md5: fe7d5050d63f2c193bf4616dca22ac69
-      size: 305
+      md5: 6d17f1c4ab417068186ce44be4c68ef3
+      size: 307

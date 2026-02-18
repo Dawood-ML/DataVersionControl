@@ -34,6 +34,8 @@ PARAMS = {
     'max_depth': 10,
     'min_samples_split': 5,
     'random_state': 42,
+    'class_weight': 'balanced',
+    'n_jobs': -1,
     'test_size': 0.2
 }
 
@@ -114,6 +116,7 @@ def train_model(input_path: str, model_path: str, scaler_path: str, params: dict
         max_depth=params['max_depth'],
         min_samples_split=params['min_samples_split'],
         random_state=params['random_state'],
+        class_weight=params['class_weight'],
         n_jobs=-1  # Use all CPU cores
     )
     
