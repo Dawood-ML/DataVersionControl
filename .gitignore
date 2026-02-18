@@ -1,1 +1,22 @@
 /data/raw/customers.csv
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Virtual env
+.venv/
+
+# OS
+.DS_Store
+
+# DVC
+/data/raw/*
+!/data/raw/.gitkeep
+/data/processed/*
+!/data/processed/.gitkeep
+/models/*
+!/models/.gitkeep
