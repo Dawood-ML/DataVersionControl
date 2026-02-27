@@ -74,7 +74,57 @@ champion_model_info = client.get_model_version_by_alias(name=MODEL_NAME, alias='
 champion_run_id  = champion_model_info.run_id
 
 champion_run = client.get_run(champion_run_id)
-champion_roc = champion_run.data.metrics('roc_auc', 0)
+champion_roc = champion_run.data.metrics.get('roc_auc', 0)
 
 print(f"\nChampion (v{champion_model_info.version}) ROC AUC : {champion_roc}")
-print(f"Challenger (v{latest_version})")
+print(f"Challenger (v{latest_version}) ROC AUC: {challenger_roc}")
+
+# Step : 3
+# Defining a minimum improvement threshold for improvement
+#  Noise in evaluation means a model 0.001 better isn't actually better
+#      Require meaningful improvement to justify the risk of a model swap
+# WHEN: Always have a threshold. Never promote based on raw better/worse alone.
+
+IMPROVEMENT_THRESHOLD = 0.005 # the challenger must beat champion by 0.5%
+
+improvement = challenger_roc - champion_roc
+print(f"\nImprovement  : {improvement}")
+
+if improvement >= IMPROVEMENT_THRESHOLD:
+    print(f"Challenger beats champion by {improvement:.4f} --- promoted")
+
+    client.set_registered_model_alias(
+        name = MODEL_NAME,
+        alias='champion',
+        version=str(latest_version)
+    )
+    client.update_model_version(
+        name=MODEL_NAME,
+        version=champion_model_info.version,
+        description=f"Demoted from champion. Replaced by v{latest_version}. ROC AUC was {champion_roc:.4f}."
+    )
+
+    print(f" v{latest_version} is now @champion")
+    print(f" v{champion_model_info.version} demoted (alias removed automatically)")
+
+else:
+    print(f" Challenger improvement insufficient ({improvement:.4f} < {IMPROVEMENT_THRESHOLD})")
+    print(f" Current champion (v{champion_model_info.version}) retained")
+
+    # tag challenger as rejected so you know why it wasn't promoted
+    client.set_model_version_tag(
+        name=MODEL_NAME,
+        version=str(latest_version),
+        key='pomotion_decision',
+        value=f"rejected — improvement {improvement:.4f} below threshold {IMPROVEMENT_THRESHOLD}"
+    )
+
+print(f"\n{'='*50}")
+print("REGISTRY STATE AFTER DECISION:")
+print(f"{'='*50}")
+all_versions = client.search_model_versions(f"name='{MODEL_NAME}'")
+for v in sorted(all_versions, key=lambda x: int(x.version)):
+    alias_str = f" ← @{', @'.join(v.aliases)}" if v.aliases else ""
+    print(f"  v{v.version}{alias_str}")
+    if v.description:
+        print(f"    {v.description[:80]}...")
