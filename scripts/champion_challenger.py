@@ -66,3 +66,15 @@ with mlflow.start_run(run_name="GB-challenger-v2") as run:
 
 
 # step 2 (Get champions performance to compare)
+# Load current champion model to get it's metrics from the tracking server
+# we need an apples to apples comparison before any promotion decision
+
+
+champion_model_info = client.get_model_version_by_alias(name=MODEL_NAME, alias='champion')
+champion_run_id  = champion_model_info.run_id
+
+champion_run = client.get_run(champion_run_id)
+champion_roc = champion_run.data.metrics('roc_auc', 0)
+
+print(f"\nChampion (v{champion_model_info.version}) ROC AUC : {champion_roc}")
+print(f"Challenger (v{latest_version})")
