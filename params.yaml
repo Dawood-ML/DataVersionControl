@@ -1,0 +1,17 @@
+model:
+  n_estimators: 150
+  max_depth: 12
+  min_sample_split: 5
+  min_sample_leaf: 2
+  class_weight: balanced
+  random_state: 42
+
+data:
+  test_size: 0.2
+  random_state: 42
+  target_column: churn
+
+mlflow:
+  experiment_name: customer-churn-prediction
+  model_registry_name: customer-churn-classifier
+  promotion_threshold: 0.005
