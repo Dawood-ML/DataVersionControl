@@ -1,158 +1,134 @@
-"""
-Model training pipeline stage.
-
-WHAT: Train ML model on processed data
-WHY: Create model artifact for deployment
-WHEN: After preprocessing
-WHEN NOT: For inference (load existing model)
-ALTERNATIVE: Train in notebook (not reproducible)
-"""
-
+import mlflow
+import mlflow.sklearn
 import pandas as pd
+import numpy as np
 import pickle
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.preprocessing import StandardScaler
+import yaml
+import json
+import os
 from pathlib import Path
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import (
+    accuracy_score, recall_score, precision_score,
+    roc_auc_score, f1_score
+)
 
-# WHAT: Input and output paths
-# WHY: DVC tracks these
-# WHEN: Pipeline stage
-# WHEN NOT: Ad-hoc training
-# ALTERNATIVE: Command-line arguments (more flexible, more complex)
-INPUT_PATH = 'data/processed/customers_cleaned.csv'
-MODEL_PATH = 'models/model.pkl'
-SCALER_PATH = 'models/scaler.pkl'
+# load parameters from params.yaml
+# read hyperparameters from shared file
+#
+# DVC watches this file for changes then re-runs this stage if any changes happen
+with open('params.yaml') as f:
+    params = yaml.safe_load(f)
+    
+model_params  = params['model']
+data_params   = params['data']
+mlflow_params = params['mlflow']
 
-# WHAT: Training hyperparameters
-# WHY: Reproducibility (same params = same model)
-# WHEN: Always define upfront
-# WHEN NOT: For hyperparameter tuning (different flow)
-# ALTERNATIVE: Config file (more scalable)
-PARAMS = {
-    'n_estimators': 100,
-    'max_depth': 10,
-    'min_samples_split': 5,
-    'random_state': 42,
-    'class_weight': 'balanced',
-    'n_jobs': -1,
-    'test_size': 0.2
-}
+data = pd.read_csv("/home/dawood-ml/DataVersionControl/data/processed/customers_cleaned.csv")
+target = data_params["target_column"]
+X = data.drop(target, axis=1)
+y = data[target]
 
-def train_model(input_path: str, model_path: str, scaler_path: str, params: dict):
-    """
-    Train Random Forest classifier.
-    
-    WHAT: Load data, train model, save artifacts
-    WHY: Reproducible training
-    WHEN: Pipeline execution
-    WHEN NOT: Hyperparameter tuning
-    ALTERNATIVE: Train manually (not reproducible)
-    """
-    print("="*60)
-    print("TRAINING MODEL")
-    print("="*60)
-    
-    # WHAT: Load processed data
-    # WHY: Training needs clean data
-    # WHEN: Start of training
-    # WHEN NOT: If data in memory
-    # ALTERNATIVE: None
-    print(f"\n📂 Loading data from: {input_path}")
-    df = pd.read_csv(input_path)
-    print(f"   Loaded {len(df):,} records")
-    
-    # WHAT: Separate features and target
-    # WHY: X = inputs, y = output
-    # WHEN: Before training
-    # WHEN NOT: Unsupervised learning
-    # ALTERNATIVE: None
-    print(f"\n🎯 Preparing features and target")
-    X = df.drop(columns=['customer_id', 'churn'])
-    y = df['churn']
-    print(f"   Features: {X.shape[1]}")
-    print(f"   Samples: {len(X):,}")
-    print(f"   Churn rate: {y.mean():.1%}")
-    
-    # WHAT: Train/test split
-    # WHY: Evaluate model on unseen data
-    # WHEN: Always split before training
-    # WHEN NOT: Cross-validation (different approach)
-    # ALTERNATIVE: K-fold CV (more robust)
-    print(f"\n✂️ Splitting data (test size: {params['test_size']:.0%})")
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, 
-        test_size=params['test_size'],
-        random_state=params['random_state'],
-        stratify=y
-    )
-    print(f"   Train: {len(X_train):,} samples")
-    print(f"   Test: {len(X_test):,} samples")
-    
-    # WHAT: Scale features
-    # WHY: Some features on different scales (age vs charges)
-    # WHEN: Before training (especially for neural nets, SVM)
-    # WHEN NOT: Tree-based models (optional but doesn't hurt)
-    # ALTERNATIVE: Normalization, no scaling
-    print(f"\n📊 Scaling features")
-    scaler = StandardScaler()
-    X_train_scaled = scaler.fit_transform(X_train)
-    X_test_scaled = scaler.transform(X_test)
-    print(f"   Fitted StandardScaler on training data")
-    
-    # WHAT: Train model
-    # WHY: Create model artifact
-    # WHEN: After data prep
-    # WHEN NOT: If loading pre-trained
-    # ALTERNATIVE: Different algorithms (XGBoost, Neural Net)
-    print(f"\n🤖 Training Random Forest")
-    print(f"   Hyperparameters:")
-    for key, value in params.items():
-        if key != 'test_size':
-            print(f"      {key}: {value}")
-    
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y,
+    test_size=data_params["test_size"],
+    random_state=data_params["random_state"],
+    stratify=y
+)
+print("I work here")
+
+
+# Set up mlflow experiment
+
+mlflow.set_experiment(mlflow_params['experiment_name'])
+
+# Get DVC data version info to attach to the mlflow run
+dvc_data_hash = "unknown"
+
+try:
+    with open('dvc.lock') as f:
+        dvc_lock = yaml.safe_load(f)
+    # Navigate to the preprocessor stage output hash
+    preprocess_outs = dvc_lock.get("stages", {}).get('preprocess', {}).get('outs', [])
+    if preprocess_outs:
+        dvc_data_hash = preprocess_outs[0].get('md5')
+
+except FileNotFoundError:
+    pass
+
+# NOw Train inside the MLFLOW run
+with mlflow.start_run(run_name=f"dvc-pipeline-rf") as run:
+    # Log everything that identifies this run. Data, Code, environment
+    # to reproduce this exact workflow
+    mlflow.set_tags({
+        "model_type": "random_forest",
+        "pipeline":"dvc",
+        "data_hash": dvc_data_hash,
+        "data_version": "v1",
+        "engineer": "Dawood",
+        "framework": 'sklearn'
+    })
+
+    # Log all hyper parameters from params.yaml
+    mlflow.log_params({
+        **model_params,
+        "test_size": data_params['test_size'],
+        "n_train_samples": len(X_train),
+        "n_test_samples": len(X_test),
+        "n_features": X_train.shape[1],
+        "class_ratio": float(y_train.mean()) # Fraction of positive classes
+    })
+    # Train
     model = RandomForestClassifier(
-        n_estimators=params['n_estimators'],
-        max_depth=params['max_depth'],
-        min_samples_split=params['min_samples_split'],
-        random_state=params['random_state'],
-        class_weight=params['class_weight'],
-        n_jobs=-1  # Use all CPU cores
+        n_estimators= model_params['n_estimators'],
+        max_depth= model_params['max_depth'],
+        min_samples_split=model_params['min_sample_split'],
+        min_samples_leaf=model_params['min_samples_leaf'],
+        class_weight=model_params['class_weight'],
+        random_state=model_params['random_state'],
+        n_jobs=-1
     )
-    
-    model.fit(X_train_scaled, y_train)
-    print(f"   Training complete!")
-    
-    # WHAT: Quick evaluation
-    # WHY: Sanity check model isn't broken
-    # WHEN: After training
-    # WHEN NOT: Full evaluation in separate stage
-    # ALTERNATIVE: None - always check
-    train_acc = model.score(X_train_scaled, y_train)
-    test_acc = model.score(X_test_scaled, y_test)
-    print(f"\n📈 Quick evaluation:")
-    print(f"   Train accuracy: {train_acc:.1%}")
-    print(f"   Test accuracy: {test_acc:.1%}")
-    
-    if test_acc < 0.6:
-        print(f"   ⚠️ WARNING: Test accuracy very low!")
-    
-    # WHAT: Save model and scaler
-    # WHY: DVC tracks these as outputs
-    # WHEN: End of training
-    # WHEN NOT: Throwaway experiments
-    # ALTERNATIVE: joblib (alternative to pickle)
-    Path(model_path).parent.mkdir(parents=True, exist_ok=True)
-    
-    with open(model_path, 'wb') as f:
-        pickle.dump(model, f)
-    print(f"\n💾 Saved model to: {model_path}")
-    
-    with open(scaler_path, 'wb') as f:
-        pickle.dump(scaler, f)
-    print(f"💾 Saved scaler to: {scaler_path}")
-    
-    print("="*60)
+    model.fit(X_train,y_train)
 
-if __name__ == "__main__":
-    train_model(INPUT_PATH, MODEL_PATH, SCALER_PATH, PARAMS)
+    y_pred = model.predict(X_test)
+    y_prob = model.predict_proba(X_test)[:, 1]
+
+    metrics = {
+        "accuracy":  round(accuracy_score(y_test, y_pred), 4),
+        "precision": round(precision_score(y_test, y_pred), 4),
+        "recall":    round(recall_score(y_test, y_pred), 4),
+        "f1":        round(f1_score(y_test, y_pred), 4),
+        "roc_auc":   round(roc_auc_score(y_test, y_prob), 4),
+    }
+
+    mlflow.log_metrics(metrics=metrics)
+
+    # Log feature importances as a custom metric series
+    feature_importances = dict(zip(X_train.columns,
+                                   model.feature_importances_))
+    top_features  = sorted(feature_importances.items(), key=lambda x: x[1], reverse=True)[:10]
+    for feat_name, importance in top_features:
+        mlflow.log_metric(f"Importances_{feat_name}", round(float(importance), 4))
+
+    # Log model to mlflow
+    # to define model signature, Input schema + output schema
+    # MLFLOW will use this to validate inputs at serving time,
+    #       catches schema mismatch before they cause failures in production
+    from mlflow.models.signature import infer_signature
+    signature = infer_signature(model_input=X_train,
+                                model_output=model.predict(X_train))
+    mlflow.sklearn.log_model(
+        sk_model=model,
+        artifact_path="model",
+        signature=signature,
+        input_example=X_train.head(3),
+        registered_model_name=model_params['model_registry_name']
+    )
+
+    # Save run id for evaluation
+    Path('metrics').mkdir(exist_ok=True)
+    with open("metrics/mlflow_run_id.txt", "w") as f:
+        f.write(run.info.run_id)
+    
+    # 
