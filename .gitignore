@@ -22,3 +22,4 @@ __pycache__/
 !/models/.gitkeep
 mlruns/
 *.db
+metrics/mlflow_run_id.txt

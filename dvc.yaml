@@ -6,22 +6,25 @@ stages:
       - scripts/preprocess.py
     outs:
       - data/processed/customers_cleaned.csv
-
   train:
     cmd: uv run scripts/train.py
     deps:
       - data/processed/customers_cleaned.csv
       - scripts/train.py
+      - params.yaml
+    params:
+      - model
+      - data
+      - mlflow
     outs:
-      - models/model.pkl
-      - models/scaler.pkl
+      - models/random_forest.pkl
   evaluate:
-    cmd: uv run scripts/evaluate.py
+    cmd: uv run python scripts/evaluate.py
     deps:
       - data/processed/customers_cleaned.csv
-      - models/model.pkl
-      - models/scaler.pkl
+      - models/random_forest.pkl
       - scripts/evaluate.py
+      - metrics/mlflow_run_id.txt
     metrics:
-      - metrics.json:
+      - metrics/eval_metrics.json:
           cache: false
