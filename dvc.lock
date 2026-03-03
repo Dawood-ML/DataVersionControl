@@ -23,40 +23,59 @@ stages:
       hash: md5
       md5: d98c8a470ac9b71757671b6fa574fa03
       size: 1246910
+    - path: params.yaml
+      hash: md5
+      md5: 78cfe4a736cf313360d3e993592b543c
+      size: 413
     - path: scripts/train.py
       hash: md5
-      md5: ad44562fad692df1d0122ec8a290b786
-      size: 5211
+      md5: 740a5671f5290277a3386299cd4e8bdd
+      size: 5232
+    params:
+      params.yaml:
+        data:
+          test_size: 0.2
+          random_state: 42
+          target_column: churn
+          data_path: 
+            /home/dawood-ml/DataVersionControl/data/processed/customers_cleaned.csv
+        mlflow:
+          experiment_name: customer-churn-prediction
+          model_registry_name: customer-churn-classifier
+          promotion_threshold: 0.005
+        model:
+          n_estimators: 3150
+          max_depth: 16
+          min_sample_split: 5
+          min_sample_leaf: 2
+          class_weight: balanced
+          random_state: 42
     outs:
-    - path: models/model.pkl
+    - path: models/random_forest.pkl
       hash: md5
-      md5: cfffe4f143e794f39960a1ce346c3bcb
-      size: 3372844
-    - path: models/scaler.pkl
-      hash: md5
-      md5: 89a2d9b923ca7371836aadb745a44318
-      size: 951
+      md5: 6bf16ad5c8c76288cedf60ccc24df4c3
+      size: 357001773
   evaluate:
-    cmd: uv run scripts/evaluate.py
+    cmd: uv run python scripts/evaluate.py
     deps:
     - path: data/processed/customers_cleaned.csv
       hash: md5
       md5: d98c8a470ac9b71757671b6fa574fa03
       size: 1246910
-    - path: models/model.pkl
+    - path: metrics/mlflow_run_id.txt
       hash: md5
-      md5: cfffe4f143e794f39960a1ce346c3bcb
-      size: 3372844
-    - path: models/scaler.pkl
+      md5: cf8ede3506d921155e99f5619b737cfd
+      size: 32
+    - path: models/random_forest.pkl
       hash: md5
-      md5: 89a2d9b923ca7371836aadb745a44318
-      size: 951
+      md5: 6bf16ad5c8c76288cedf60ccc24df4c3
+      size: 357001773
     - path: scripts/evaluate.py
       hash: md5
-      md5: 7d0d6b22f2b670cb0511b1ad0b5414fd
-      size: 4591
+      md5: f1d6a8aec72ef8b7e63f38fd8c35324c
+      size: 7350
     outs:
-    - path: metrics.json
+    - path: metrics/eval_metrics.json
       hash: md5
-      md5: 6d17f1c4ab417068186ce44be4c68ef3
-      size: 307
+      md5: 1143a144393469985e31147583286b9a
+      size: 99

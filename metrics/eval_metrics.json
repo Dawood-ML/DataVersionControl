@@ -1,0 +1,6 @@
+{
+  "eval_roc_auc": 0.517,
+  "eval_accuracy": 0.648,
+  "eval_recall": 0.1093,
+  "eval_f1": 0.1566
+}
