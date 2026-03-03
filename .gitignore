@@ -21,3 +21,4 @@ __pycache__/
 /models/*
 !/models/.gitkeep
 mlruns/
+*.db

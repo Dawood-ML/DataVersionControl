@@ -84,7 +84,7 @@ with mlflow.start_run(run_name=f"dvc-pipeline-rf") as run:
         n_estimators= model_params['n_estimators'],
         max_depth= model_params['max_depth'],
         min_samples_split=model_params['min_sample_split'],
-        min_samples_leaf=model_params['min_samples_leaf'],
+        min_samples_leaf=model_params['min_sample_leaf'],
         class_weight=model_params['class_weight'],
         random_state=model_params['random_state'],
         n_jobs=-1
@@ -120,10 +120,10 @@ with mlflow.start_run(run_name=f"dvc-pipeline-rf") as run:
                                 model_output=model.predict(X_train))
     mlflow.sklearn.log_model(
         sk_model=model,
-        artifact_path="model",
+        name="model",
         signature=signature,
         input_example=X_train.head(3),
-        registered_model_name=model_params['model_registry_name']
+        registered_model_name=mlflow_params['model_registry_name']
     )
 
     # Save run id for evaluation
@@ -131,4 +131,26 @@ with mlflow.start_run(run_name=f"dvc-pipeline-rf") as run:
     with open("metrics/mlflow_run_id.txt", "w") as f:
         f.write(run.info.run_id)
     
-    # 
+    # Save metrics for DVC (DVC reads JSON not MLFLOW)
+    #  MLflow metrics are for the UI. DVC metrics are for CLI comparison.
+    #  Both systems get fed the same numbers.
+
+    with open('metrics/train_metrics.json', 'w') as f:
+        json.dump(metrics, f, indent=2)
+
+    # SAve model as pickle for DVC pipeline
+    # Save model on disk so evaluation file can load it
+    Path('models').mkdir(exist_ok=True)
+    with open('models/random_forest.pkl', 'wb') as f:
+        pickle.dump(model, f)
+
+        print(f"\n{'='*55}")
+    print(f"TRAINING COMPLETE")
+    print(f"{'='*55}")
+    print(f"  Run ID:    {run.info.run_id}")
+    print(f"  Data hash: {dvc_data_hash}")
+    print(f"  ROC AUC:   {metrics['roc_auc']:.4f}")
+    print(f"  Recall:    {metrics['recall']:.4f}")
+    print(f"  F1:        {metrics['f1']:.4f}")
+    print(f"{'='*55}")
+
