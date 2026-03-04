@@ -1,21 +1,26 @@
-# Customer Churn Prediction with DVC
+# Customer Churn Prediction: Learning DVC and MLflow
 
-**Production-ready ML pipeline with complete data version control and reproducible workflows.**
+**A hands-on educational project demonstrating MLOps fundamentals through data version control, experiment tracking, and model management—built on synthetic data for learning purposes.**
 
 [![DVC](https://img.shields.io/badge/DVC-Data%20Version%20Control-blue)](https://dvc.org)
+[![MLflow](https://img.shields.io/badge/MLflow-Experiment%20Tracking-green)](https://mlflow.org)
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org)
 
 ---
 
 ## Project Overview
 
-Machine learning pipeline to predict customer churn with focus on:
-- **Data versioning** (DVC tracks all data versions)
-- **Reproducible pipelines** (One command rebuilds everything)
-- **Remote storage** (Team can share data seamlessly)
-- **Experiment tracking** (Every model iteration documented)
+This repository serves as a practical exploration of MLOps tools, focusing on building a reproducible machine learning pipeline for predicting customer churn. It started with DVC for data versioning and pipeline orchestration, and has since expanded to integrate MLflow for experiment tracking, model registry, and advanced concepts like model aliases, champion/challenger patterns.
 
-**Key Innovation:** Entire ML workflow (data → model) is reproducible from Git commits.
+**Important Note:** This is purely an educational project using synthetic (fake) data generated for demonstration. It's not based on real-world datasets or intended for production use—think of it as a sandbox where I've experimented with these tools to deepen my understanding. The goal is to show how DVC and MLflow can work together in a grounded, step-by-step way, highlighting their strengths without overhyping the results.
+
+Key elements:
+- **Data versioning and pipelines** via DVC for reproducibility.
+- **Experiment tracking and model management** via MLflow, including logging runs, registering models, and handling deployment patterns like champion/challenger.
+- **Reproducible workflows:** Rebuild everything from Git commits.
+- **Collaboration-friendly:** Easy sharing of data, models, and experiments.
+
+Through this, I've learned how these tools make ML projects more organized and reliable, even in a simple setup like this.
 
 ---
 
@@ -29,7 +34,7 @@ Machine learning pipeline to predict customer churn with focus on:
 | **F1 Score** | 60.2% |
 | **ROC AUC** | 0.764 |
 
-**Business Impact:** Model catches 68% of churners vs 30% baseline (random).
+**Business Impact (Simulated):** The model identifies about 68% of potential churners, improving on a random baseline of 30%. These metrics come from experiments tracked in MLflow—feel free to explore variations in the UI.
 
 ---
 
@@ -42,13 +47,15 @@ Machine learning pipeline to predict customer churn with focus on:
 
 ### MLOps Tools
 - **DVC** - Data version control + pipeline orchestration
+- **MLflow** - Experiment tracking, model registry, and serving
 - **Git** - Code version control
 - **UV** - Python dependency management
 
 ### Pipeline Stages
-1. **Preprocess** - Clean data, handle missing values, feature engineering
-2. **Train** - Train Random Forest with class balancing
-3. **Evaluate** - Compute metrics, confusion matrix
+1. **Preprocess** - Clean data, handle missing values, feature engineering (DVC-tracked).
+2. **Train** - Train Random Forest with class balancing (logged to MLflow).
+3. **Evaluate** - Compute metrics, confusion matrix (results in MLflow).
+4. **Register Model** - Add trained models to MLflow registry with aliases (e.g., "champion" for production, "challenger" for testing).
 
 ---
 
@@ -58,6 +65,7 @@ Machine learning pipeline to predict customer churn with focus on:
 - Python 3.11+
 - UV package manager ([install](https://github.com/astral-sh/uv))
 - Git
+- MLflow (installed via UV)
 
 ### Installation
 ```bash
@@ -71,60 +79,89 @@ uv sync
 # Pull data from DVC remote
 uv run dvc pull
 
-# Run complete ML pipeline
+# Start MLflow UI (optional, for viewing experiments)
+uv run mlflow ui --host 0.0.0.0 &
+
+# Run complete pipeline
 uv run dvc repro
 ```
 
-**That's it!** Pipeline runs: preprocess → train → evaluate.
+This runs the DVC pipeline, which now integrates MLflow for tracking. Check the MLflow UI at `http://localhost:5000` to see experiments.
 
 ---
 
 ## Project Structure
 ```
 DataVersionControl/
+├── LICENSE
+├── README.md
 ├── data/
-│   ├── raw/                    # Original data (DVC-tracked)
+│   ├── raw/                    # Original synthetic data (DVC-tracked)                    
 │   └── processed/              # Cleaned data (DVC-tracked)
-├── models/                     # Trained models (DVC-tracked)
-│   ├── model.pkl
-│   └── scaler.pkl
 ├── scripts/
-│   ├── generate_data.py        # Synthetic data generation
-│   ├── preprocess.py           # Data cleaning pipeline
-│   ├── train.py                # Model training pipeline
-│   ├── evaluate.py             # Model evaluation pipeline
-│   └── run_experiment.py       # Experiment helper
-├── experiments/
-│   └── README.md               # Experiment log
+│   ├── champion_challenger.py
+│   ├── compare_experiments.py
+│   ├── compare_versions.py
+│   ├── evaluate.py             # Model evaluation with MLflow
+│   ├── generate_data.py
+│   ├── load_and_predict.py
+│   ├── manage_registry.py
+│   ├── preprocess.py           # Data cleaning pipeline
+│   ├── register_model.py       # MLflow model registry script
+│   ├── run_experiment.py       # Helper for MLflow experiments
+│   ├── show_data_history.py
+│   ├── test_mlflow.py
+│   ├── train.py                # Model training with MLflow logging
+│   ├── train_autolog.py
+│   ├── train_tagged.py
+│   ├── train_with_artifacts.py
+│   └── update_data_v2.py 
 ├── docs/                       # Documentation
+├── models/                     # Trained models (DVC-tracked, also in MLflow)
+│   ├── model.pkl
+│   ├── random_forest.pkl
+│   └── scaler.pkl
+├── experiments/
+│   └── README.md               # Manual experiment notes (supplemented by MLflow)
+├── metrics/
+│   ├── eval_metrics.json
+│   ├── mlflow_run_id.txt
+│   └── train_metrics.json
+├── main.py
+├── metrics.json                # Model metrics (DVC-tracked, also in MLflow)
+├── mlflow.db
+├── mlruns/                     # MLflow tracking artifacts (git-ignored)
+├── params.yaml
+├── pyproject.toml              # Python dependencies
+└── uv.lock
+├── dvc.lock                    # Pipeline lockfile
 ├── dvc.yaml                    # DVC pipeline definition
-├── dvc.lock                    # Pipeline lockfile (exact hashes)
-├── metrics.json                # Model metrics (tracked by DVC)
-└── pyproject.toml              # Python dependencies
+
+166 directories, 411 files
 ```
 
 ---
 
-## DVC Pipeline
+## Pipeline Visualization
 
-### Pipeline Visualization
+### DVC + MLflow Integration
 ```
-data/raw/customers.csv
+data/raw/customers.csv (synthetic)
          ↓
-    [preprocess]
+    [preprocess] (DVC)
          ↓
 data/processed/customers_cleaned.csv
          ↓
-      [train]
+      [train] (DVC + MLflow logging)
          ↓
-   models/model.pkl
+   models/model.pkl (registered in MLflow)
          ↓
-     [evaluate]
+     [evaluate] (DVC + MLflow metrics)
          ↓
     metrics.json
 ```
 
-### View Pipeline
+### View DVC Pipeline
 ```bash
 uv run dvc dag
 ```
@@ -134,7 +171,7 @@ uv run dvc dag
 uv run dvc repro
 ```
 
-**Smart Caching:** Only reruns changed stages. If nothing changed, completes instantly.
+DVC handles caching; MLflow logs runs automatically during train/evaluate.
 
 ---
 
@@ -146,42 +183,41 @@ uv run dvc repro
 - **Features:** 10 customer attributes + 3 derived features
 - **Train/Test Split:** 80/20 with stratification
 
-### Experiment Log
-See [experiments/README.md](experiments/README.md) for full experiment history.
+### Experiment Tracking with MLflow
+All runs are logged to MLflow, including parameters, metrics, and artifacts. View in the UI to compare experiments.
+
+### Model Registry
+Models are registered in MLflow with stages (e.g., Staging, Production) and aliases like "champion" (current best) and "challenger" (new contender for A/B testing).
 
 ### Key Learning
-**Problem:** Initial model had 0.3% recall (caught 2 churners out of 677)  
-**Solution:** Added `class_weight='balanced'`  
-**Result:** 67.8% recall (226x improvement!)
+**Initial Challenge:** Poor recall (0.3%) on imbalanced data.  
+**Solution:** Added balancing and tracked iterations in MLflow.  
+**Result:** 67.8% recall—a solid improvement, visible across experiment runs.
+
+See [experiments/README.md](experiments/README.md) for notes, or MLflow UI for full details.
 
 ---
 
-## Data Versioning
+## Data Versioning with DVC
 
 ### Why DVC?
-- ✅ Track dataset versions (like Git for data)
-- ✅ Rollback to previous data versions
-- ✅ Share large files without Git bloat
-- ✅ Reproducible ML experiments
+- ✅ Tracks dataset versions alongside code.
+- ✅ Enables rollbacks and sharing without bloating Git.
+- ✅ Ensures reproducibility in ML experiments.
 
 ### Example: Version Control
 ```bash
 # Track new dataset version
 uv run dvc add data/raw/customers.csv
 git add data/raw/customers.csv.dvc
-git commit -m "Update dataset v2"
+git commit -m "Update synthetic dataset v2"
 
-# Teammate gets exact same data
+# Pull exact data
 git pull
 uv run dvc pull
 ```
 
-### Rollback to Previous Version
-```bash
-# Go back to previous data version
-git checkout HEAD~1 data/raw/customers.csv.dvc
-uv run dvc checkout data/raw/customers.csv.dvc
-```
+Integrates seamlessly with MLflow for end-to-end tracking.
 
 ---
 
@@ -191,121 +227,123 @@ uv run dvc checkout data/raw/customers.csv.dvc
 ```bash
 git clone <repo-url>
 uv sync
-uv run dvc pull  # Download data from remote
-uv run dvc repro # Run pipeline (uses cache if nothing changed)
+uv run dvc pull  # Get data
+uv run mlflow ui &  # View experiments
+uv run dvc repro # Run pipeline
 ```
 
 ### Make Changes
 ```bash
-# Modify code or data
+# Edit code or data
 vim scripts/train.py
 
-# Run pipeline
+# Run and track
 uv run dvc repro
 
-# Push data artifacts
+# Push DVC artifacts
 uv run dvc push
 
-# Commit code + pipeline changes
+# Commit
 git add dvc.lock scripts/train.py
-git commit -m "Increase model depth"
+git commit -m "New experiment with deeper trees"
 git push
 ```
+
+Share MLflow runs via the tracking server for team reviews.
 
 ---
 
 ## 🧪 Running Experiments
 
-### Try Different Hyperparameters
-
-Edit `scripts/train.py`:
+### With MLflow
+Edit parameters in `scripts/train.py`:
 ```python
 PARAMS = {
-    'n_estimators': 200,  # Increase from 100
-    'max_depth': 15,       # Increase from 10
+    'n_estimators': 200,
+    'max_depth': 15,
     # ...
 }
 ```
 
-Then run:
+Run:
 ```bash
 uv run dvc repro
-uv run dvc metrics show
+uv run mlflow ui  # Compare runs
 ```
 
-DVC only reruns `train` and `evaluate` stages (preprocessed data cached).
+DVC caches unchanged stages; MLflow logs everything. Try registering a challenger model:
+```bash
+uv run python scripts/register_model.py --alias challenger
+```
 
 ---
 
 ## 📝 MLOps Practices Demonstrated
 
 ### Data Management
-- [x] Data version control (DVC)
-- [x] Data lineage tracking
-- [x] Remote storage backup
-- [x] Data rollback capability
+- [x] Version control (DVC)
+- [x] Lineage tracking
+- [x] Remote storage
+- [x] Rollback
+
+### Experiment & Model Management
+- [x] Tracking runs (MLflow)
+- [x] Model registry with stages/aliases
+- [x] Champion/challenger patterns
+- [x] Metrics logging
 
 ### Pipeline Management
-- [x] Reproducible pipelines (dvc.yaml)
-- [x] Dependency tracking
-- [x] Smart caching (skip unchanged stages)
-- [x] Metrics tracking
+- [x] Reproducible pipelines (DVC + MLflow)
+- [x] Caching and dependencies
+- [x] Modular code
 
 ### Code Quality
-- [x] Modular code structure
-- [x] Virtual environment isolation (UV)
-- [x] Dependency locking (uv.lock)
-- [x] Git version control
-
-### Documentation
-- [x] Comprehensive README
-- [x] Inline code comments (WHAT/WHY/WHEN)
-- [x] Experiment logging
-- [x] Architecture docs
+- [x] Virtual environments (UV)
+- [x] Git integration
+- [x] Documentation
 
 ---
 
 ## 🔮 Future Improvements
 
 ### Model
-- [ ] Hyperparameter tuning (GridSearchCV)
-- [ ] Try XGBoost/LightGBM
-- [ ] Feature importance analysis
-- [ ] SHAP values for interpretability
+- [ ] Hyperparameter tuning
+- [ ] Advanced algorithms (e.g., XGBoost)
+- [ ] Interpretability (SHAP)
 
 ### MLOps
-- [ ] CI/CD pipeline (GitHub Actions)
-- [ ] Model registry (MLflow)
-- [ ] A/B testing framework
-- [ ] Production monitoring
+- [ ] CI/CD (GitHub Actions)
+- [ ] MLflow model serving
+- [ ] A/B testing integration
+- [ ] Monitoring
 
 ### Infrastructure
-- [ ] Migrate to S3 remote storage
-- [ ] Containerization (Docker)
-- [ ] API serving (FastAPI)
-- [ ] Kubernetes deployment
+- [ ] Docker for consistency
+- [ ] Cloud storage (S3)
+- [ ] Full deployment (FastAPI/Kubernetes)
 
 ---
 
 ## 📚 Documentation
 
-- [DVC Remotes Explained](docs/dvc_remotes_explained.md)
-- [DVC Team Workflow](docs/dvc_team_workflow.md)
-- [DVC Commands Cheatsheet](docs/dvc_commands_cheatsheet.md)
-- [DVC Pipeline Concepts](docs/dvc_pipeline_concepts.md)
+- [DVC Remotes](docs/dvc_remotes_explained.md)
+- [DVC Workflow](docs/dvc_team_workflow.md)
+- [DVC Cheatsheet](docs/dvc_commands_cheatsheet.md)
+- [DVC Pipelines](docs/dvc_pipeline_concepts.md)
+- [MLflow Basics](docs/mlflow_basics.md)  # New: Covering tracking, registry, etc.
 
 ---
 
 ## 🎓 Learning Outcomes
 
-This project demonstrates:
-1. **Data versioning** - Track datasets like code
-2. **Pipeline automation** - One command runs entire workflow
-3. **Reproducibility** - Same commit = same model
-4. **Collaboration** - Team shares data seamlessly
-5. **Experiment tracking** - Document all iterations
+This project highlights:
+1. **Data versioning** with DVC for reliable ML foundations.
+2. **Experiment tracking** with MLflow to document iterations.
+3. **Model management** including registries and patterns like champion/challenger.
+4. **Integrated workflows** combining DVC and MLflow.
+5. **Reproducibility and collaboration** in a simple, educational context.
 
-**Key Insight:** DVC makes ML projects reproducible and collaborative without cloud lock-in.
+**Core Insight:** Tools like DVC and MLflow make ML more approachable and structured, even for learning on synthetic data.
 
 ---
 
@@ -317,7 +355,7 @@ MIT
 
 ## 👤 Author
 
-**Dawood** - ML Engineer specializing in production MLOps
+**Dawood** - An ML enthusiast exploring MLOps through hands-on projects.
 
 [GitHub](https://github.com/Dawood-ML) | [LinkedIn](https://www.linkedin.com/in/muhammad-dawood-khan-5a3292329/)
 
@@ -325,32 +363,10 @@ MIT
 
 ## 🙏 Acknowledgments
 
-- DVC for making data version control accessible
-- UV for blazing-fast Python dependency management
-- The MLOps community for best practices
+- DVC and MLflow teams for accessible tools.
+- UV for efficient dependency handling.
+- The MLOps community for sharing practical insights.
 
 ---
 
-**⭐ Star this repo if you learned something!**
-```
-
----
-
-## PART 4: Final Polish (5 min)
-
-### Add .gitattributes for Better Diffs
-
-Create `.gitattributes`:
-```
-# Mark DVC files as binary (don't show diffs)
-*.dvc binary
-dvc.lock binary
-
-# Python files are text
-*.py text
-
-# Markdown files are text
-*.md text
-
-# JSON files are text
-*.json text
+**⭐ If this helps your learning journey, consider starring the repo!**
