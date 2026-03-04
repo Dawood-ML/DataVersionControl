@@ -1,6 +1,6 @@
 # Experiment Log
 
-## Baseline (2025-02-15)
+## Baseline (2026-02-15)
 
 **Hyperparameters:**
 - n_estimators: 100
@@ -17,7 +17,7 @@
 
 ---
 
-## Experiment 1: Balanced Classes (2025-02-15)
+## Experiment 1: Balanced Classes (2026-02-15)
 
 **Hyperparameters:**
 - n_estimators: 100
